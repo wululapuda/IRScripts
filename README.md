@@ -4,7 +4,6 @@
 
 IR Scripts lets pack makers attach Nashorn JavaScript to any IR stock definition — control locomotives, read gauges, play sounds, and expose in-game buttons — without writing a separate Forge mod.
 
-[中文介绍](#中文介绍) · [Wiki (EN)](docs/Wiki-EN.md) · [Wiki (中文)](docs/Wiki-ZH.md)
 
 ---
 
