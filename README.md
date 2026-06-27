@@ -213,7 +213,7 @@ function horn() {
 }
 ```
 
-完整 API 文档：[(https://github.com/wululapuda/IRScripts/wiki)](https://github.com/wululapuda/IRScripts/wiki)
+完整 API 文档：[https://github.com/wululapuda/IRScripts/wiki](https://github.com/wululapuda/IRScripts/wiki)
 
 ---
 
