@@ -1,0 +1,476 @@
+# IR Scripts API 参考（中文 · 最新）
+
+> **Mod ID：** `irscripts` · **版本：** 1.0.0 · **Minecraft：** 1.12.2  
+> **依赖：** Immersive Railroading、UniversalModCore、TrackAPI  
+> **脚本引擎：** Mozilla Rhino（已打包进 mod，不依赖 JRE 自带 Nashorn）  
+> **执行端：** 仅服务端
+
+---
+
+## 目录
+
+1. [快速开始](#快速开始)
+2. [脚本配置与执行模式](#脚本配置与执行模式)
+3. [全局对象](#全局对象)
+4. [完整 API 列表](#完整-api-列表)
+5. [stock 根级 API](#stock-根级-api)
+6. [stock.control — 机车控制](#stockcontrol--机车控制)
+7. [stock.coupler — 耦合器](#stockcoupler--耦合器)
+8. [stock.readout — 读数](#stockreadout--读数)
+9. [stock.sound — 音效](#stocksound--音效)
+10. [数值约定与调试](#数值约定与调试)
+11. [示例脚本](#示例脚本)
+12. [限制说明](#限制说明)
+
+---
+
+## 快速开始
+
+### 1. 放置脚本文件
+
+将 `.js` 放入资源包，例如：
+
+```
+assets/mypack/scripts/my_train.js
+```
+
+在 JSON 中引用：`mypack:scripts/my_train.js`
+
+### 2. 在车辆 JSON 中注册
+
+在 IR 车辆定义 JSON **根节点**添加 `scripts` 数组：
+
+```json
+{
+  "name": "My Train",
+  "max_speed_kmh": 200,
+  "scripts": [{
+    "path": "mypack:scripts/my_train.js",
+    "functions": {
+      "onTick": "LOOP",
+      "onSpawn": "ONCE",
+      "playHorn": "BUTTON"
+    }
+  }]
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `path` | 脚本资源路径（IR Identifier 格式） |
+| `functions` | 键 = JS 函数名，值 = 执行模式（见下表） |
+
+### 3. 编写脚本
+
+```javascript
+function onSpawn() {
+    print("生成: " + stock.getDefinitionId());
+}
+
+function onTick() {
+    var kmh = stock.getSpeedKmh();
+    var ratio = stock.readout.getSpeed(); // 0~1，相对最高速度
+    if (stock.getTickCount() % 100 === 0) {
+        print("kmh=" + kmh + " ratio=" + ratio);
+    }
+}
+
+function playHorn() {
+    stock.sound.play("sounds/horn_1.ogg", 0.8);
+}
+```
+
+### 4. 重载资源
+
+修改 zip / 资源包后，重启游戏或在 IR 中重载定义，使 Bootstrap 重新扫描 JSON。
+
+---
+
+## 脚本配置与执行模式
+
+| 模式 | 说明 |
+|------|------|
+| `LOOP` | 列车实例创建后，**每个游戏 tick** 调用一次 |
+| `ONCE` | 列车实例创建后，**仅调用一次** |
+| `BUTTON` | 不自动执行；玩家在 GUI 中点击按钮后调用 |
+
+**BUTTON 显示条件（需 Mixin / GUI 钩子生效时）：**
+
+- 玩家正在骑乘该列车
+- 打开 IR 车辆背包界面，或按 `E` 打开原版背包
+- 该车辆定义至少有一个 `BUTTON` 函数
+
+按钮标签默认为函数名。
+
+**运行机制：**
+
+- 每个列车实例拥有**独立的 JavaScript 引擎**，互不干扰
+- 脚本在服务端扫描 JSON 中的 `scripts` 块并注册（不依赖 Mixin 也能加载）
+- 服务端每 tick 遍历所有 `EntityRollingStock` 执行 `LOOP` / `ONCE` 逻辑
+
+---
+
+## 全局对象
+
+| 名称 | 类型 | 说明 |
+|------|------|------|
+| `stock` | object | 当前列车实例，包含全部 API |
+| `print(message)` | function | 输出脚本日志（见下方） |
+
+### print(message)
+
+将内容写入游戏日志：
+
+```
+[Script|<uuid前8位>|<脚本path>] <message>
+```
+
+可用 JVM 参数关闭脚本输出：`-Dirscripts.scriptPrint=false`
+
+---
+
+## 完整 API 列表
+
+### 全局
+
+| 名称 | 签名 | 说明 |
+|------|------|------|
+| `print` | `print(message)` | 输出日志 |
+| `stock` | — | 列车绑定对象 |
+
+### stock（根级）— 共 11 项
+
+| 方法 / 属性 | 返回类型 | 读写 | 说明 |
+|-------------|----------|------|------|
+| `getUuid()` | string | 只读 | 实例 UUID |
+| `getDefinitionId()` | string | 只读 | 定义 ID，如 `rolling_stock/locomotives/foo.json` |
+| `getTag()` | string | 只读 | IR 车辆 tag |
+| `getTickCount()` | number | 只读 | 实体存活 tick 数 |
+| `getSpeedKmh()` | number | 只读 | **实际速度 km/h** |
+| `getSpeedMps()` | number | 只读 | **实际速度 m/s** |
+| `control` | object | — | 机车控制 API |
+| `coupler` | object | — | 耦合器 API |
+| `readout` | object | — | IR 读数 API |
+| `sound` | object | — | 音效 API |
+| `getStock()` | object | 只读 | 原始 IR 实体（高级用途，一般不需要） |
+
+> **注意：** 根级 **没有** `getSpeed()`。  
+> - 要 **km/h** → `stock.getSpeedKmh()`  
+> - 要 **相对最高速度 0~1** → `stock.readout.getSpeed()`
+
+### stock.control — 共 14 项
+
+| 方法 | 返回 | 读写 | 说明 |
+|------|------|------|------|
+| `getType()` | string | 只读 | `"diesel"` / `"steam"` / `"locomotive"` / `"none"` |
+| `isLocomotive()` | boolean | 只读 | 是否为机车 |
+| `isDiesel()` | boolean | 只读 | 是否为内燃机车 |
+| `isSteam()` | boolean | 只读 | 是否为蒸汽机车 |
+| `setEngine(value)` | void | 写 | 内燃引擎开关：`≥0.5` 开，`<0.5` 关 |
+| `getEngine()` | number | 只读 | `0` 或 `1` |
+| `setTrainBrake(value)` | void | 写 | 列车制动 `0.0~1.0` |
+| `getTrainBrake()` | number | 只读 | 列车制动 |
+| `setIndependentBrake(value)` | void | 写 | 独立制动 `0.0~1.0` |
+| `getIndependentBrake()` | number | 只读 | 独立制动 |
+| `setThrottle(value)` | void | 写 | 节流 `0.0~1.0` |
+| `getThrottle()` | number | 只读 | 节流 |
+| `setReverser(value)` | void | 写 | 换向（语义见下） |
+| `getReverser()` | number | 只读 | 换向 |
+
+### stock.coupler — 共 9 项
+
+| 方法 | 返回 | 读写 | 说明 |
+|------|------|------|------|
+| `isCoupleable()` | boolean | 只读 | 是否支持耦合器 |
+| `setCouplerFront(value)` | void | 写 | 前耦合器：`≥0.5` 接合 |
+| `setCouplerRear(value)` | void | 写 | 后耦合器 |
+| `getCouplerFront()` | number | 只读 | 前耦合器状态 `0/1` |
+| `getCouplerRear()` | number | 只读 | 后耦合器状态 `0/1` |
+| `getCoupledFront()` | number | 只读 | 前方是否已连挂 `0/1` |
+| `getCoupledRear()` | number | 只读 | 后方是否已连挂 `0/1` |
+| `getSlackFront()` | number | 只读 | 前松弛量比例 `0~1` |
+| `getSlackRear()` | number | 只读 | 后松弛量比例 `0~1` |
+
+### stock.readout — 共 20 项（全部只读）
+
+| 方法 | 说明 |
+|------|------|
+| `getLiquid()` | 液体装载百分比；不可装液体时为 `0` |
+| `getSpeed()` | 当前速度 / 最大速度（**0.0~1.0**） |
+| `getTemperature()` | 蒸汽：温度/100；内燃：温度/150 |
+| `getCargoFill()` | 货物装载百分比 |
+| `getBoilerPressure()` | 蒸汽锅炉压力 / JSON `maxPSI` |
+| `getEngineRpm()` | 内燃 RPM/节流（相对设定有延迟） |
+| `getTrainBrakeLever()` | 全列刹车杆位置 |
+| `getBrakePressure()` | 整列制动压力 |
+| `getCoupledFront()` | 前方连挂 `0/1` |
+| `getCoupledRear()` | 后方连挂 `0/1` |
+| `getCouplerSlackFront()` | 前耦合器松弛量比例 |
+| `getCouplerSlackRear()` | 后耦合器松弛量比例 |
+| `getBell()` | 铃是否响 `0/1` |
+| `getHorn()` | 汽笛/喇叭是否响 `0/1` |
+| `getWhistle()` | 同 `getHorn()` |
+| `getFrontBogeyAngle()` | 前转向架偏转角 `0~1` |
+| `getRearBogeyAngle()` | 后转向架偏转角 `0~1` |
+| `getFrontLocomotiveAngle()` | 前机车架偏转角 `0~1` |
+| `getRearLocomotiveAngle()` | 后机车架偏转角 `0~1` |
+| `getCylinderDrain()` | 蒸汽汽缸排水阀 `0/1` |
+
+### stock.sound — 共 3 个重载
+
+| 签名 | 说明 |
+|------|------|
+| `play(path, volume)` | 播放音效 |
+| `play(path, volume, pitch)` | 指定音调 |
+| `play(path, volume, pitch, repeat)` | 指定是否循环 |
+
+| 参数 | 范围 | 默认值 |
+|------|------|--------|
+| `path` | string | — |
+| `volume` | `0.0~1.0` | — |
+| `pitch` | `0.1~2.0` | `1.0` |
+| `repeat` | boolean | `false` |
+
+---
+
+## stock 根级 API
+
+### 速度：两种读法
+
+```javascript
+var kmh = stock.getSpeedKmh();      // 实际 km/h，例如 120.5
+var mps = stock.getSpeedMps();      // 实际 m/s
+var ratio = stock.readout.getSpeed(); // 0~1，相对 max_speed_kmh
+```
+
+写走行音脚本时，推荐用 **比例 + 最高速度**：
+
+```javascript
+function sounds() {
+    var speed = stock.getSpeedKmh();
+    var maxKmh = 200.0; // 与 JSON max_speed_kmh 一致
+    var ratio = speed / maxKmh;
+
+    if (ratio > 0.5) {
+        stock.sound.play("sounds/train/run.ogg", 1.0, 1.5, true);
+    } else if (speed > 0) {
+        stock.sound.play("sounds/train/run.ogg", 0.6, 1.0, true);
+    }
+}
+```
+
+---
+
+## stock.control — 机车控制
+
+**所有 setter 仅在服务端生效。** 在非对应车型上调用 setter 会写警告日志并忽略，不会抛异常。
+
+### 换向器 setReverser / getReverser
+
+| 车型 | setReverser | getReverser |
+|------|-------------|-------------|
+| 内燃 (diesel) | `≤-0.5` 后退；`≥0.5` 前进；其余空档 | `-1` / `0` / `1` |
+| 蒸汽 (steam) | `0.0~1.0` 线性 | `0.0~1.0` |
+| 其他机车 | `-1.0~1.0` | 原始值 |
+
+### 示例
+
+```javascript
+function startDiesel() {
+    if (!stock.control.isDiesel()) return;
+    stock.control.setEngine(1);
+    stock.control.setThrottle(0.3);
+    stock.control.setReverser(1); // 前进
+}
+
+function autoBrake() {
+    if (!stock.control.isLocomotive()) return;
+    if (stock.getSpeedKmh() > 60) {
+        stock.control.setTrainBrake(1.0);
+    } else if (stock.getSpeedKmh() < 5) {
+        stock.control.setTrainBrake(0.0);
+    }
+}
+```
+
+---
+
+## stock.coupler — 耦合器
+
+```javascript
+function disconnectRear() {
+    if (stock.coupler.isCoupleable()) {
+        stock.coupler.setCouplerRear(0); // 断开
+    }
+}
+
+function checkCoupling() {
+    print("front coupled=" + stock.coupler.getCoupledFront()
+        + " slack=" + stock.coupler.getSlackFront());
+}
+```
+
+---
+
+## stock.readout — 读数
+
+与 IR 游戏内 GUI overlay 读数一致，**全部只读**，适用于任意车辆类型。
+
+```javascript
+function monitor() {
+    var r = stock.readout;
+    print("ratio=" + r.getSpeed()
+        + " kmh=" + stock.getSpeedKmh()
+        + " boiler=" + r.getBoilerPressure()
+        + " brake=" + r.getBrakePressure()
+        + " horn=" + r.getHorn());
+}
+```
+
+---
+
+## stock.sound — 音效
+
+**仅服务端调用**；客户端通过数据包同步播放。
+
+### 路径规则
+
+| 写法 | 解析 |
+|------|------|
+| `sounds/horn_1.ogg` | `<车辆包域>:sounds/horn_1.ogg` |
+| `horn_1` | 自动补全为 `sounds/horn_1.ogg` |
+| `mypack:sounds/custom.ogg` | 完整 Identifier |
+
+**域规则：**
+
+- 若 `definitionId` 含 `:`（如 `mypack:train_a`），域为 `mypack`
+- 否则默认 `immersiverailroading`
+
+```javascript
+stock.sound.play("sounds/horn_1.ogg", 0.8);
+stock.sound.play("sounds/engine_loop.ogg", 0.5, 1.2);
+stock.sound.play("sounds/idle.ogg", 0.3, 1.0, true); // 循环
+stock.sound.play("otherpack:sounds/alarm.ogg", 1.0);
+```
+
+---
+
+## 数值约定与调试
+
+### 数值约定
+
+| 概念 | 约定 |
+|------|------|
+| 开关量 | `0` = 关；`1` = 开 |
+| 比例量 | 通常 `0.0~1.0`，setter 自动 clamp |
+| 服务端限制 | `control` / `coupler` 的 setter、`sound.play` 仅服务端执行 |
+| 错误处理 | API 非法调用写警告日志；脚本函数异常写 `[Script|...]` 错误，不崩溃服务端 |
+
+### JVM 调试参数
+
+| 参数 | 说明 |
+|------|------|
+| `-Dirscripts.debug=true` | 开启详细调试日志 |
+| `-Dirscripts.scriptPrint=false` | 关闭 `print()` 输出 |
+| `-Dirscripts.loopErrorCooldownMs=5000` | LOOP 错误重复日志间隔（毫秒） |
+
+### 日志关键字
+
+| 前缀 | 含义 |
+|------|------|
+| `[Bootstrap]` | 扫描车辆 JSON |
+| `[Registry]` | 注册脚本函数 |
+| `[Runtime]` | 创建/销毁脚本实例 |
+| `[Engine]` | JS 引擎初始化（Rhino） |
+| `[Script\|...\|...]` | 脚本 print / 错误 |
+
+### 单人 / 多人
+
+| 项目 | 说明 |
+|------|------|
+| 脚本运行端 | 始终为服务端（单人 = 集成服务端） |
+| 客户端 | 不执行 JS；负责 BUTTON UI 与音效播放 |
+| BUTTON | 客户端点击 → 发包 → 服务端执行函数 |
+
+---
+
+## 示例脚本
+
+### CRH 走行音（LOOP）
+
+JSON：
+
+```json
+"scripts": [{
+  "path": "immersiverailroading:scripts/sounds.js",
+  "functions": { "sounds": "LOOP" }
+}]
+```
+
+`sounds.js`：
+
+```javascript
+function sounds() {
+    var speed = stock.getSpeedKmh();
+    var ratio = speed / 200.0; // max_speed_kmh
+
+    if (ratio > 0.9) {
+        stock.sound.play("sounds/train/crh2a_run1.ogg", 1.0, 1.9, true);
+    } else if (ratio > 0.8) {
+        stock.sound.play("sounds/train/crh2a_run1.ogg", 1.0, 1.8, true);
+    } else if (ratio > 0.5) {
+        stock.sound.play("sounds/train/crh2a_run1.ogg", 1.0, 1.5, true);
+    } else if (speed > 0) {
+        stock.sound.play("sounds/train/crh2a_run1.ogg", 0.6, 1.0, true);
+    }
+}
+```
+
+### 完整功能示例
+
+```javascript
+function init() {
+    print("spawned: " + stock.getDefinitionId());
+    if (stock.control.isDiesel()) {
+        stock.control.setEngine(1);
+    }
+}
+
+function mainLoop() {
+    if (stock.control.isLocomotive() && stock.getSpeedKmh() > 80) {
+        stock.control.setTrainBrake(Math.min(1.0, (stock.getSpeedKmh() - 80) / 20));
+    }
+}
+
+function horn() {
+    stock.sound.play("sounds/horn_1.ogg", 0.9);
+}
+```
+
+---
+
+## 限制说明
+
+1. **JavaScript 方言：** Rhino，兼容 **ES5**；不支持 `let`/`const` 以外的 ES6+ 语法（视版本而定，建议用 `var` + 传统函数）。
+2. **每实例独立引擎：** 同定义的多节车各自独立运行脚本。
+3. **LOOP 性能：** 避免每 tick 重计算；注意 `sound.play(..., true)` 循环播放频率。
+4. **尚未提供：**
+   - `stopSound()` / 停止循环音效
+   - 铃、汽笛、排水阀的 **setter**
+   - 自定义 BUTTON 标签
+   - 客户端脚本
+5. **GUI 按钮：** 依赖 Mixin；若 MixinBooter 未加载 irscripts 配置，LOOP/ONCE 仍可用，BUTTON 可能无效。
+
+---
+
+## API 数量汇总
+
+| 分类 | 数量 |
+|------|------|
+| 全局 | 2（`print`、`stock`） |
+| stock 根级 | 11 |
+| stock.control | 14 |
+| stock.coupler | 9 |
+| stock.readout | 20 |
+| stock.sound | 3 个重载 |
+| **合计（方法级）** | **59+** |

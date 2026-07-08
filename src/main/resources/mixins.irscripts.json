@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cn.wululapuda.irscripts.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinDefinitionManager",
+    "MixinEntityRollingStockDefinition",
+    "MixinEntityRollingStock",
+    "MixinServerContainerBuilder"
+  ],
+  "client": [
+    "MixinClientContainerBuilder",
+    "MixinGuiInventory"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
