@@ -41,12 +41,34 @@ public final class TrainScriptManager {
     }
 
     public static void detach(EntityRollingStock stock) {
-        UUID stockId = stock.getUUID();
+        if (stock == null) {
+            return;
+        }
+        detachById(stock.getUUID());
+    }
+
+    public static void detachById(UUID stockId) {
         TrainScriptInstance removed = INSTANCES.remove(stockId);
         if (removed != null) {
             removed.dispose();
         }
         NO_SCRIPT_STOCKS.remove(stockId);
+    }
+
+    /**
+     * Cleans up script instances whose rolling stock no longer exists in the given world.
+     * Works without Mixin when {@code onRemoved} is not hooked.
+     */
+    public static void purgeStaleInstances(cam72cam.mod.world.World world) {
+        if (world == null || !world.isServer) {
+            return;
+        }
+
+        for (UUID stockId : INSTANCES.keySet()) {
+            if (world.getEntity(stockId, EntityRollingStock.class) == null) {
+                detachById(stockId);
+            }
+        }
     }
 
     private static TrainScriptInstance ensureInstance(EntityRollingStock stock) {

@@ -1,3 +1,10 @@
 {
-  "cn.wululapuda.irscripts.none": "none"
+  "cn.wululapuda.irscripts.none": "none",
+  "irscripts.config.title": "IR Scripts Settings",
+  "irscripts.config.button.open": "IR Scripts",
+  "irscripts.config.script_print": "Script print() output",
+  "irscripts.config.debug": "Debug logging",
+  "irscripts.config.show_buttons": "Show script buttons",
+  "irscripts.config.on": "ON",
+  "irscripts.config.off": "OFF"
 }

@@ -21,6 +21,9 @@ public class ScriptSoundPacket extends Packet {
     private UUID stockId;
 
     @TagField
+    private UUID soundId;
+
+    @TagField
     private Vec3d pos;
 
     @TagField
@@ -44,9 +47,11 @@ public class ScriptSoundPacket extends Packet {
     public ScriptSoundPacket() {
     }
 
-    public ScriptSoundPacket(String file, UUID stockId, Vec3d pos, Vec3d motion, float volume, float pitch, int distance, float scale, boolean repeat) {
+    public ScriptSoundPacket(String file, UUID stockId, UUID soundId, Vec3d pos, Vec3d motion,
+                             float volume, float pitch, int distance, float scale, boolean repeat) {
         this.file = file;
         this.stockId = stockId;
+        this.soundId = soundId;
         this.pos = pos;
         this.motion = motion;
         this.volume = volume;
@@ -80,5 +85,9 @@ public class ScriptSoundPacket extends Packet {
         sound.setVolume(volume);
         sound.setPitch(pitch);
         sound.play(playPos);
+
+        if (stockId != null && soundId != null) {
+            ScriptClientSoundManager.register(stockId, soundId, file, sound);
+        }
     }
 }

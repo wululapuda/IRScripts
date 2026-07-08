@@ -18,9 +18,11 @@
 7. [stock.coupler — 耦合器](#stockcoupler--耦合器)
 8. [stock.readout — 读数](#stockreadout--读数)
 9. [stock.sound — 音效](#stocksound--音效)
-10. [数值约定与调试](#数值约定与调试)
-11. [示例脚本](#示例脚本)
-12. [限制说明](#限制说明)
+10. [stock.animation — 动画](#stockanimation--动画)
+11. [stock.particle — 烟雾 / 蒸汽](#stockparticle--烟雾--蒸汽)
+12. [数值约定与调试](#数值约定与调试)
+13. [示例脚本](#示例脚本)
+14. [限制说明](#限制说明)
 
 ---
 
@@ -47,7 +49,8 @@ assets/mypack/scripts/my_train.js
   "scripts": [{
     "path": "mypack:scripts/my_train.js",
     "functions": {
-      "onTick": "LOOP",
+      "onTick": "LOOP-TICK",
+      "onCycle": "LOOP-SCRIPTS",
       "onSpawn": "ONCE",
       "playHorn": "BUTTON"
     }
@@ -88,11 +91,14 @@ function playHorn() {
 
 ## 脚本配置与执行模式
 
-| 模式 | 说明 |
-|------|------|
-| `LOOP` | 列车实例创建后，**每个游戏 tick** 调用一次 |
-| `ONCE` | 列车实例创建后，**仅调用一次** |
-| `BUTTON` | 不自动执行；玩家在 GUI 中点击按钮后调用 |
+| 模式 | JSON 值 | 说明 |
+|------|---------|------|
+| `LOOP-TICK` | `LOOP-TICK` 或旧版 `LOOP` | **每个游戏 tick** 调用一次（原 LOOP 行为） |
+| `LOOP-SCRIPTS` | `LOOP-SCRIPTS` | **上一次运行完全结束后** 才允许下一次运行；运行中跳过后续 tick |
+| `ONCE` | `ONCE` | 实例创建后仅调用一次 |
+| `BUTTON` | `BUTTON` | GUI 按钮触发 |
+
+**循环模式错误处理：** `LOOP-TICK` / `LOOP-SCRIPTS` 中若函数抛出错误，该函数会被**永久禁用**（本列车实例内不再运行），日志**只记录一次**。
 
 **BUTTON 显示条件（需 Mixin / GUI 钩子生效时）：**
 
@@ -138,7 +144,7 @@ function playHorn() {
 | `print` | `print(message)` | 输出日志 |
 | `stock` | — | 列车绑定对象 |
 
-### stock（根级）— 共 11 项
+### stock（根级）— 共 12 项
 
 | 方法 / 属性 | 返回类型 | 读写 | 说明 |
 |-------------|----------|------|------|
@@ -152,6 +158,9 @@ function playHorn() {
 | `coupler` | object | — | 耦合器 API |
 | `readout` | object | — | IR 读数 API |
 | `sound` | object | — | 音效 API |
+| `cg_group` | object | — | 控制组 (CG) API |
+| `animation` | object | — | IR `.anim` 动画 API |
+| `particle` | object | — | 烟雾 / 蒸汽粒子 API |
 | `getStock()` | object | 只读 | 原始 IR 实体（高级用途，一般不需要） |
 
 > **注意：** 根级 **没有** `getSpeed()`。  
@@ -216,20 +225,24 @@ function playHorn() {
 | `getRearLocomotiveAngle()` | 后机车架偏转角 `0~1` |
 | `getCylinderDrain()` | 蒸汽汽缸排水阀 `0/1` |
 
-### stock.sound — 共 3 个重载
+### stock.sound — 播放 / 阻塞 / 停止
 
-| 签名 | 说明 |
-|------|------|
-| `play(path, volume)` | 播放音效 |
-| `play(path, volume, pitch)` | 指定音调 |
-| `play(path, volume, pitch, repeat)` | 指定是否循环 |
+| 方法 | 阻塞 | 说明 |
+|------|------|------|
+| `play(path, volume)` | 否 | 非阻塞播放 |
+| `play(path, volume, pitch)` | 否 | 指定音调 |
+| `play(path, volume, pitch, repeat)` | 否 | 指定循环 |
+| `play(path, volume, pitch, repeat, maxDistance)` | 否 | 指定听距（格） |
+| `utilPlay(...)` | **脚本内** | 与 `play` 参数相同；**等待音频播完**后再执行后续代码（不阻塞服务端主线程） |
+| `stopPlay()` | 否 | 停止本实例所有脚本音效 |
+| `stopPlay(path)` | 否 | 停止指定路径的脚本音效 |
 
-| 参数 | 范围 | 默认值 |
-|------|------|--------|
-| `path` | string | — |
-| `volume` | `0.0~1.0` | — |
-| `pitch` | `0.1~2.0` | `1.0` |
-| `repeat` | boolean | `false` |
+**`utilPlay` 说明：**
+- 服务端根据 Ogg 时长估算等待时间（受 `pitch` 影响），按 tick 暂停脚本并在后续 tick 恢复
+- `repeat: true` 时等待**一轮**后自动 `stopPlay`
+- 会暂停当前脚本的后续逻辑（含 `LOOP-SCRIPTS` 的下一次调度），但**不会冻结世界或其它实体**
+
+**`play` 说明：** 触发后立即返回，不等待播完。
 
 ---
 
@@ -329,6 +342,128 @@ function monitor() {
 
 ---
 
+## stock.cg_group — 控制组 (CG)
+
+读写 IR 车辆 JSON / 模型里定义的 **control group**（如门、灯光动画组）。值域与 IR 一致：**0.0 ~ 1.0**。
+
+| 方法 | 参数 | 返回 | 说明 |
+|------|------|------|------|
+| `get(name)` | string 控制组名 | number | 读取当前值 |
+| `set(name, value)` | string, number | void | 设置值（服务端；自动 clamp 到 0~1） |
+
+控制组名称来自车辆 JSON 中 widget 的 `control_group` 字段，例如 CRH1A 的 `leftdoor`、`rightdoor`。
+
+```javascript
+function openLeftDoor() {
+    stock.cg_group.set("leftdoor", 1.0);
+}
+
+function closeDoors() {
+    stock.cg_group.set("leftdoor", 0.0);
+    stock.cg_group.set("rightdoor", 0.0);
+}
+
+function doorState() {
+    print("left=" + stock.cg_group.get("leftdoor")
+        + " right=" + stock.cg_group.get("rightdoor"));
+}
+```
+
+---
+
+## stock.animation — 动画
+
+播放车辆 JSON 中 `animations` 注册的 IR **`.anim`** 动画。通过控制组写入驱动值；脚本自行指定播放模式与初始值。
+
+### `play(animFile, controlOrReadout, playMode, reverse, initialValue)`
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `animFile` | string | animatrix 路径，如 `immersiverailroading:amin/1/left.anim`；传空字符串 `""` 则仅按控制组/readout 查找 |
+| `controlOrReadout` | string | JSON 中的 `control_group` 名，或 `readout` 名（只读型动画无法从脚本触发） |
+| `playMode` | string | `VALUE` / `PLAY_FORWARD` / `PLAY_REVERSE` / `PLAY_BOTH` / `LOOP` / `LOOP_SPEED` |
+| `reverse` | boolean | 是否反向（按模式翻转控制值，如 `PLAY_BOTH` 关门） |
+| `initialValue` | number | 初始控制值 `0.0~1.0` |
+
+辅助方法：`get(name)` 读取控制组当前值；`list()` 返回本车动画控制组列表。
+
+```javascript
+// CRH1A 左门（JSON: PLAY_BOTH, control_group: leftdoor）
+function openLeftDoor() {
+    stock.animation.play(
+        "immersiverailroading:amin/1/left.anim",
+        "leftdoor",
+        "PLAY_BOTH",
+        false,
+        1.0
+    );
+}
+
+function closeLeftDoor() {
+    stock.animation.play(
+        "immersiverailroading:amin/1/left.anim",
+        "leftdoor",
+        "PLAY_BOTH",
+        true,
+        1.0
+    );
+}
+
+// 不指定文件，只按控制组名
+function openRightDoor() {
+    stock.animation.play("", "rightdoor", "PLAY_BOTH", false, 1.0);
+}
+
+// VALUE 模式：scrub 到 50%
+stock.animation.play("", "my_anim", "VALUE", false, 0.5);
+
+// LOOP 循环动画
+stock.animation.play("", "fan", "LOOP", false, 1.0);
+
+// 停止循环
+stock.animation.play("", "fan", "LOOP", true, 0.0);
+```
+
+> `PLAY_FORWARD` / `LOOP` 等模式通常需 `initialValue >= 0.95`（或传 `1.0`）才会开始播放；`PLAY_REVERSE` 模式通常需较低值（或 `reverse=true`）。
+
+---
+
+## stock.particle — 烟雾 / 蒸汽
+
+在**列车模型坐标系**（与 IR 模型轴向一致，自动按轨距缩放）生成 IR 原生烟雾/蒸汽粒子，效果与 IR 内燃机烟雾 / 蒸汽机车烟囱类似。仅客户端渲染，脚本在服务端调用。
+
+### `smoke(start, offset, speed, time, concentration[, texture])`
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `start` | `[x, y, z]` | 效果起始位置（IR 模型坐标系） |
+| `offset` | `[x, y, z]` | 相对起始位置的偏移量（IR 模型坐标系，与 `start` 相加） |
+| `speed` | number | 粒子运动速度 |
+| `time` | number | 效果持续时间（**秒**） |
+| `concentration` | number | 烟雾浓度 `0.0~1.0`（与 IR 内燃机排烟类似） |
+| `texture` | string | 可选，粒子贴图资源路径 |
+
+### `steam(start, offset, speed, time[, texture])`
+
+与 `smoke` 相同，但无 `concentration`，为浅色蒸汽效果。
+
+未指定 `texture` 时使用车辆 JSON 中的 `smokeParticleTexture` / `steamParticleTexture` 默认值。
+
+```javascript
+// start = 模型坐标系起始点，offset = 相对偏移
+stock.particle.smoke([0, 4.2, 0.5], [0, 0.2, 0], 0.4, 3.0, 0.8);
+
+stock.particle.smoke([0, 4.2, 0.5], [0, 0, 0], 0.4, 2.0, 0.6, "mypack:textures/diesel_smoke.png");
+
+stock.particle.steam([0, 3.8, -1.0], [0, 0.3, 0], 0.5, 2.5);
+
+stock.particle.steam([0, 3.8, -1.0], [0, 0, 0], 0.5, 1.5, "immersiverailroading:textures/light.png");
+```
+
+> 需在 IR 图形设置中开启粒子（`particlesEnabled`）。效果持续期间每 tick 生成粒子，与 IR 原生排烟逻辑一致。
+
+---
+
 ## stock.sound — 音效
 
 **仅服务端调用**；客户端通过数据包同步播放。
@@ -350,6 +485,7 @@ function monitor() {
 stock.sound.play("sounds/horn_1.ogg", 0.8);
 stock.sound.play("sounds/engine_loop.ogg", 0.5, 1.2);
 stock.sound.play("sounds/idle.ogg", 0.3, 1.0, true); // 循环
+stock.sound.play("sounds/horn_1.ogg", 1.0, 1.0, false, 64); // 64 格内可听见
 stock.sound.play("otherpack:sounds/alarm.ogg", 1.0);
 ```
 
@@ -468,9 +604,11 @@ function horn() {
 | 分类 | 数量 |
 |------|------|
 | 全局 | 2（`print`、`stock`） |
-| stock 根级 | 11 |
+| stock 根级 | 12 |
 | stock.control | 14 |
 | stock.coupler | 9 |
 | stock.readout | 20 |
-| stock.sound | 3 个重载 |
+| stock.sound | 3 个重载 + stopPlay |
+| stock.animation | play + get + list |
+| stock.particle | smoke + steam |
 | **合计（方法级）** | **59+** |

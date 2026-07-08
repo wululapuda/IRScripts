@@ -1,28 +1,20 @@
 package cn.wululapuda.irscripts.util;
 
 import cn.wululapuda.irscripts.IRScripts;
+import cn.wululapuda.irscripts.config.ScriptRuntimeSettings;
 import cn.wululapuda.irscripts.script.ScriptMode;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Centralized logging for IR Scripts with categories, script output, and rate-limited LOOP errors.
+ * Centralized logging for IR Scripts with categories and script output.
  *
  * JVM flags:
  *   -Dirscripts.debug=true          enable debug logs
  *   -Dirscripts.scriptPrint=false  silence script print() output
- *   -Dirscripts.loopErrorCooldownMs=5000  min interval between repeated LOOP error logs
  */
 public final class ScriptLog {
-    private static final long LOOP_ERROR_COOLDOWN_MS = Long.getLong("irscripts.loopErrorCooldownMs", 5000L);
-    private static final boolean DEBUG = Boolean.getBoolean("irscripts.debug");
-    private static final boolean SCRIPT_PRINT = !"false".equalsIgnoreCase(System.getProperty("irscripts.scriptPrint", "true"));
-
-    private static final Map<String, Long> LOOP_ERROR_LAST_LOG = new ConcurrentHashMap<>();
-
     private ScriptLog() {
     }
 
@@ -31,15 +23,17 @@ public final class ScriptLog {
     }
 
     public static void startup() {
-        log().info("IR Scripts {} starting (Nashorn JS, server-side execution)", IRScripts.VERSION);
-        if (DEBUG) {
-            log().info("[Config] debug=true, scriptPrint={}, loopErrorCooldownMs={}",
-                    SCRIPT_PRINT, LOOP_ERROR_COOLDOWN_MS);
+        log().info("IR Scripts {} starting (Rhino JS, server-side execution)", IRScripts.VERSION);
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().info("[Config] debug=true, scriptPrint={}", ScriptRuntimeSettings.isScriptPrint());
         }
     }
 
+    public static void configUpdated(boolean scriptPrint, boolean debug) {
+        log().info("[Config] Updated: scriptPrint={}, debug={}", scriptPrint, debug);
+    }
+
     public static void registryCleared() {
-        LOOP_ERROR_LAST_LOG.clear();
         log().info("[Registry] Cleared script registry and source cache");
     }
 
@@ -52,7 +46,7 @@ public final class ScriptLog {
     }
 
     public static void sourceLoaded(String path, int lineCount) {
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Source] Loaded {} ({} lines)", path, lineCount);
         }
     }
@@ -64,13 +58,13 @@ public final class ScriptLog {
     public static void runtimeCreated(UUID stockId, String defId, int scriptFileCount) {
         log().info("[Runtime] Created for stock {} def={} ({} script file(s))",
                 shortUuid(stockId), defId, scriptFileCount);
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Runtime] Full stock UUID {}", stockId);
         }
     }
 
     public static void runtimeDisposed(UUID stockId, String defId) {
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Runtime] Disposed stock {} def={}", shortUuid(stockId), defId);
         }
     }
@@ -80,13 +74,13 @@ public final class ScriptLog {
     }
 
     public static void runtimeNoScripts(UUID stockId, String defId) {
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Runtime] No scripts for stock {} def={}", shortUuid(stockId), defId);
         }
     }
 
     public static void buttonInvoke(UUID stockId, String scriptPath, String functionName) {
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Button] stock={} {}#{}", shortUuid(stockId), scriptPath, functionName);
         }
     }
@@ -96,24 +90,26 @@ public final class ScriptLog {
     }
 
     public static void scriptPrint(UUID stockId, String scriptPath, Object message) {
-        if (!SCRIPT_PRINT) {
+        if (!ScriptRuntimeSettings.isScriptPrint()) {
             return;
         }
         log().info("[Script|{}|{}] {}", shortUuid(stockId), scriptPath, message);
     }
 
     public static void scriptOnceExecuted(UUID stockId, String scriptPath, String functionName) {
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Script|{}|{}] ONCE {} executed", shortUuid(stockId), scriptPath, functionName);
         }
     }
 
     public static void scriptError(UUID stockId, String scriptPath, String functionName, ScriptMode mode, Throwable cause) {
-        if (mode == ScriptMode.LOOP && shouldSuppressLoopError(stockId, scriptPath, functionName)) {
-            return;
-        }
         log().error("[Script|{}|{}] {}#{} ({}) failed",
                 shortUuid(stockId), scriptPath, scriptPath, functionName, mode, cause);
+    }
+
+    public static void scriptLoopDisabled(UUID stockId, String scriptPath, String functionName, ScriptMode mode) {
+        log().warn("[Script|{}|{}] {}#{} ({}) disabled after error; will not run again for this stock instance",
+                shortUuid(stockId), scriptPath, scriptPath, functionName, mode);
     }
 
     public static void scriptMissingFunction(String scriptPath, String functionName) {
@@ -121,7 +117,7 @@ public final class ScriptLog {
     }
 
     public static void apiIgnored(String api, String action, String reason, Object... detail) {
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             if (detail.length == 0) {
                 log().debug("[API|{}] {} ignored: {}", api, action, reason);
             } else {
@@ -134,17 +130,64 @@ public final class ScriptLog {
         log().warn("[API|{}] {}: " + message, prepend(api, action, args));
     }
 
-    public static void soundPlayed(UUID stockId, String identifier, float volume, float pitch, boolean repeat) {
-        if (DEBUG) {
-            log().debug("[Sound|{}] play {} vol={} pitch={} repeat={}",
-                    shortUuid(stockId), identifier, volume, pitch, repeat);
+    public static void soundPlayed(UUID stockId, String identifier, float volume, float pitch, boolean repeat, int maxDistance) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[Sound|{}] play {} vol={} pitch={} repeat={} distance={}",
+                    shortUuid(stockId), identifier, volume, pitch, repeat, maxDistance);
         }
     }
 
     public static void soundFailed(String context, Throwable cause) {
         log().warn("[Sound] {} failed: {}", context, cause.getMessage());
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Sound] detail", cause);
+        }
+    }
+
+    public static void soundStopped(UUID stockId, String scope, String detail) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[Sound|{}] stopPlay {} {}", shortUuid(stockId), scope, detail == null ? "" : detail);
+        }
+    }
+
+    public static void utilPlayWait(UUID stockId, String path, long durationMs) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[Sound|{}] utilPlay pausing {} ms (~{} ticks) for {}",
+                    shortUuid(stockId), durationMs, Math.max(1, (int) Math.ceil(durationMs / 50.0D)), path);
+        }
+    }
+
+    public static void continuationScheduled(UUID stockId, String functionName, int waitTicks) {
+        log().debug("[Continuation|{}] {} resumes after {} tick(s)",
+                shortUuid(stockId), functionName, waitTicks);
+    }
+
+    public static void continuationFailed(UUID stockId, String functionName, Throwable cause) {
+        log().error("[Continuation|{}] {} failed during resume", shortUuid(stockId), functionName, cause);
+    }
+
+    public static void particleEmitted(
+            UUID stockId,
+            int type,
+            double startX,
+            double startY,
+            double startZ,
+            double offsetX,
+            double offsetY,
+            double offsetZ,
+            double speed,
+            double time,
+            float concentration,
+            String texture
+    ) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[Particle|{}] {} start=[{},{},{}] offset=[{},{},{}] speed={} time={}s concentration={} texture={}",
+                    shortUuid(stockId),
+                    type == 0 ? "smoke" : "steam",
+                    startX, startY, startZ,
+                    offsetX, offsetY, offsetZ,
+                    speed, time, concentration,
+                    texture == null ? "default" : texture);
         }
     }
 
@@ -162,7 +205,7 @@ public final class ScriptLog {
     }
 
     public static void bootstrapMissing(String defId) {
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Bootstrap] Could not load JSON for {}", defId);
         }
     }
@@ -172,7 +215,7 @@ public final class ScriptLog {
     }
 
     public static void engineCreatedVia(String name) {
-        if (DEBUG) {
+        if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Engine] Created via ScriptEngineManager name '{}'", name);
         }
     }
@@ -183,13 +226,6 @@ public final class ScriptLog {
 
     public static void engineDirectUnavailable(String reason) {
         log().warn("[Engine] Direct Nashorn init failed: {}", reason);
-    }
-
-    private static boolean shouldSuppressLoopError(UUID stockId, String scriptPath, String functionName) {
-        String key = stockId + "|" + scriptPath + "|" + functionName;
-        long now = System.currentTimeMillis();
-        Long last = LOOP_ERROR_LAST_LOG.put(key, now);
-        return last != null && now - last < LOOP_ERROR_COOLDOWN_MS;
     }
 
     private static String shortUuid(UUID uuid) {

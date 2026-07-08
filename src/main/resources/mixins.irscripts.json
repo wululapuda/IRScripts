@@ -11,7 +11,9 @@
   ],
   "client": [
     "MixinClientContainerBuilder",
-    "MixinGuiInventory"
+    "MixinGuiInventory",
+    "MixinConfigGui",
+    "IConfigGuiAccess"
   ],
   "injectors": {
     "defaultRequire": 1

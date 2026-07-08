@@ -4,6 +4,7 @@ import cam72cam.immersiverailroading.entity.EntityRollingStock;
 import cam72cam.mod.MinecraftClient;
 import cam72cam.mod.entity.Entity;
 import cam72cam.mod.entity.Player;
+import cn.wululapuda.irscripts.config.ScriptRuntimeSettings;
 import cn.wululapuda.irscripts.net.ScriptButtonClickPacket;
 import cn.wululapuda.irscripts.script.ScriptButtonEntry;
 import cn.wululapuda.irscripts.script.StockScriptRegistry;
@@ -30,6 +31,9 @@ public final class ScriptButtonOverlay {
     }
 
     public static boolean shouldShow(EntityRollingStock stock) {
+        if (!ScriptRuntimeSettings.isShowScriptButtons()) {
+            return false;
+        }
         if (stock == null) {
             return false;
         }

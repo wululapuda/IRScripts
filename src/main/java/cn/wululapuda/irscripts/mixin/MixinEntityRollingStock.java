@@ -9,14 +9,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = EntityRollingStock.class, remap = false)
 public class MixinEntityRollingStock {
-    @Inject(method = "onTick", at = @At("TAIL"), remap = false)
-    private void irscripts$onTick(CallbackInfo ci) {
-        EntityRollingStock self = (EntityRollingStock) (Object) this;
-        if (self.getWorld().isServer) {
-            TrainScriptManager.onStockTick(self);
-        }
-    }
-
     @Inject(method = "onRemoved", at = @At("HEAD"), remap = false)
     private void irscripts$onRemoved(CallbackInfo ci) {
         TrainScriptManager.detach((EntityRollingStock) (Object) this);

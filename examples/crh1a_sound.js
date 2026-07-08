@@ -114,7 +114,7 @@ function playLayer(layer, path, vol, pitch) {
     layer.active = true;
     layer.vol = vol;
     layer.pitch = pitch;
-    stock.sound.play(path, vol, pitch, true);
+    stock.sound.play(path, vol, pitch, true, 128);
 }
 
 function setInactive(layer) {
