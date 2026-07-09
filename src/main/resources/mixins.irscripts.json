@@ -10,8 +10,6 @@
     "MixinServerContainerBuilder"
   ],
   "client": [
-    "MixinClientContainerBuilder",
-    "MixinGuiInventory",
     "MixinConfigGui",
     "IConfigGuiAccess"
   ],

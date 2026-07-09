@@ -25,6 +25,10 @@ public final class ScriptEventHandler {
         tryScan("FMLLoadCompleteEvent");
     }
 
+    public static void onClientReady() {
+        tryScan("ClientReady");
+    }
+
     public static void onServerAboutToStart(FMLServerAboutToStartEvent event) {
         tryScan("FMLServerAboutToStartEvent");
     }

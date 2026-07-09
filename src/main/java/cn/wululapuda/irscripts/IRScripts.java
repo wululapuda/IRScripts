@@ -7,6 +7,7 @@ import cn.wululapuda.irscripts.config.IRScriptsModConfig;
 import cn.wululapuda.irscripts.config.ScriptRuntimeSettings;
 import cn.wululapuda.irscripts.net.ScriptButtonClickPacket;
 import cn.wululapuda.irscripts.net.ScriptConfigSyncPacket;
+import cn.wululapuda.irscripts.net.ScriptModelRenderPacket;
 import cn.wululapuda.irscripts.net.ScriptParticlePacket;
 import cn.wululapuda.irscripts.net.ScriptSoundPacket;
 import cn.wululapuda.irscripts.net.ScriptStopSoundPacket;
@@ -46,6 +47,7 @@ public class IRScripts {
         Packet.register(ScriptSoundPacket::new, PacketDirection.ServerToClient);
         Packet.register(ScriptStopSoundPacket::new, PacketDirection.ServerToClient);
         Packet.register(ScriptParticlePacket::new, PacketDirection.ServerToClient);
+        Packet.register(ScriptModelRenderPacket::new, PacketDirection.ServerToClient);
         ScriptEventHandler.init();
         proxy.preInit(event);
         ScriptLog.startup();

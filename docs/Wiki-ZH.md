@@ -12,7 +12,8 @@
 1. [快速开始](#快速开始)
 2. [脚本配置与执行模式](#脚本配置与执行模式)
 3. [全局对象](#全局对象)
-4. [完整 API 列表](#完整-api-列表)
+4. [标准库](#标准库)
+5. [完整 API 列表](#完整-api-列表)
 5. [stock 根级 API](#stock-根级-api)
 6. [stock.control — 机车控制](#stockcontrol--机车控制)
 7. [stock.coupler — 耦合器](#stockcoupler--耦合器)
@@ -122,6 +123,9 @@ function playHorn() {
 |------|------|------|
 | `stock` | object | 当前列车实例，包含全部 API |
 | `print(message)` | function | 输出脚本日志（见下方） |
+| `time` | object | Python `time` 模块子集（见 [标准库](#标准库)） |
+| `util` | object | 常用数学/映射工具 |
+| `random` | object | Python `random` 模块子集 |
 
 ### print(message)
 
@@ -527,6 +531,67 @@ stock.sound.play("otherpack:sounds/alarm.ogg", 1.0);
 | 脚本运行端 | 始终为服务端（单人 = 集成服务端） |
 | 客户端 | 不执行 JS；负责 BUTTON UI 与音效播放 |
 | BUTTON | 客户端点击 → 发包 → 服务端执行函数 |
+
+---
+
+## 标准库
+
+每个脚本实例启动时自动加载以下全局模块（无需 `import`）。
+
+### time — Python `time` 子集
+
+| 方法 | 说明 |
+|------|------|
+| `time.time()` | 墙钟秒（Unix 时间戳，浮点） |
+| `time.monotonic()` / `time.perf_counter()` | 单调时钟秒，适合测间隔 |
+| `time.process_time()` | 线程 CPU 时间（近似） |
+| `time.sleep(seconds)` | **非阻塞**暂停脚本约 N 秒（按 tick 调度，不冻结世界） |
+| `time.localtime([secs])` / `time.gmtime([secs])` | 转 struct_time（含 `tm_year` 等字段） |
+| `time.mktime(st)` / `time.strftime(fmt, st)` | 时间结构互转 / 格式化（支持 `%Y` `%m` `%d` `%H` `%M` `%S` 等） |
+| `time.ctime([secs])` / `time.asctime(st)` | 可读字符串 |
+| `time.world_tick()` | 当前维度世界总 tick |
+| `time.stock_tick()` | 当前列车实体 tick 计数 |
+| `time.ticks_to_seconds(ticks)` / `time.seconds_to_ticks(seconds)` | tick ↔ 秒 |
+| `time.TICKS_PER_SECOND` | `20` |
+| `time.SECONDS_PER_TICK` | `0.05` |
+
+```javascript
+function onTick() {
+    if (time.stock_tick() % 100 === 0) {
+        print(time.strftime("%H:%M:%S", time.localtime()));
+    }
+}
+
+function playHorn() {
+    stock.sound.utilPlay("sounds/horn.ogg", 1.0);
+    time.sleep(0.5); // 暂停脚本 0.5s，世界继续运行
+    stock.sound.play("sounds/horn.ogg", 0.8);
+}
+```
+
+### util — 常用工具
+
+| 方法 | 说明 |
+|------|------|
+| `util.clamp(x, min, max)` | 限制范围 |
+| `util.lerp(a, b, t)` | 线性插值 |
+| `util.inverseLerp(a, b, value)` | 反插值 → 0~1 |
+| `util.mapRange(v, inMin, inMax, outMin, outMax)` | 区间映射 |
+| `util.sign(x)` | 符号 `-1/0/1` |
+| `util.approximately(a, b[, eps])` | 近似相等 |
+| `util.mod(x, m)` | 正余数 |
+| `util.degToRad(deg)` / `util.radToDeg(rad)` | 角度转换 |
+
+### random — Python `random` 子集
+
+| 方法 | 说明 |
+|------|------|
+| `random.random()` | `[0, 1)` 浮点 |
+| `random.uniform(a, b)` | 均匀分布 |
+| `random.randint(a, b)` | 闭区间整数 |
+| `random.choice(seq)` | 随机元素 |
+| `random.shuffle(arr)` | 原地洗牌 |
+| `random.seed(n)` | 可选固定种子（可重复序列） |
 
 ---
 

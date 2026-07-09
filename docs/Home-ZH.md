@@ -21,7 +21,8 @@ IR Scripts 为 **Minecraft 1.12.2** 的 [Immersive Railroading](https://github.c
 
 | 页面 | 说明 |
 |------|------|
-| **[完整 API 参考](Wiki-ZH)** | 配置说明、全部 API、示例代码 |
+| **[脚本手册（Docsify 站点）](site/README.md)** | 参照 [原野 IR 手册](https://goldenfield192.github.io/) 风格的分章教程 |
+| **[完整 API 参考](Wiki-ZH.md)** | 配置说明、全部 API、示例代码 |
 | **[GitHub README](../README.md)** | 项目概览、快速开始、编译说明 |
 
 ---

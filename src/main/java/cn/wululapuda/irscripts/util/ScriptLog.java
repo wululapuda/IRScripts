@@ -166,6 +166,30 @@ public final class ScriptLog {
         log().error("[Continuation|{}] {} failed during resume", shortUuid(stockId), functionName, cause);
     }
 
+    public static void modelLoaded(UUID stockId, String handleId, String path) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[Model|{}] loaded {} -> {}", shortUuid(stockId), handleId, path);
+        }
+    }
+
+    public static void modelRenderAdded(UUID stockId, UUID renderId, String sourceHandle) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[Model|{}] render {} from {}", shortUuid(stockId), renderId, sourceHandle);
+        }
+    }
+
+    public static void modelRenderRemoved(UUID stockId, UUID renderId) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[Model|{}] rendercut {}", shortUuid(stockId), renderId);
+        }
+    }
+
+    public static void modelCurveAdapted(String meshGroupId, String curveId) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[Model] adaptcurve {} -> {}", meshGroupId, curveId);
+        }
+    }
+
     public static void particleEmitted(
             UUID stockId,
             int type,

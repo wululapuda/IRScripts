@@ -1,0 +1,10 @@
+{
+  "cn.wululapuda.irscripts.none": "无",
+  "irscripts.config.title": "IR Scripts 设置",
+  "irscripts.config.button.open": "IR Scripts",
+  "irscripts.config.script_print": "脚本 print() 输出",
+  "irscripts.config.debug": "调试日志",
+  "irscripts.config.show_buttons": "显示脚本按钮",
+  "irscripts.config.on": "开",
+  "irscripts.config.off": "关"
+}

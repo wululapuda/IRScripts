@@ -2,6 +2,9 @@ package cn.wululapuda.irscripts.script;
 
 import cam72cam.immersiverailroading.entity.EntityRollingStock;
 import cn.wululapuda.irscripts.api.ScriptSoundTracker;
+import cn.wululapuda.irscripts.api.ScriptModelTracker;
+import cn.wululapuda.irscripts.math.CurveHandleRegistry;
+import cn.wululapuda.irscripts.model.ModelHandleRegistry;
 import cn.wululapuda.irscripts.util.ScriptLog;
 import org.mozilla.javascript.ContinuationPending;
 
@@ -18,6 +21,9 @@ public final class TrainScriptInstance {
     private final String defId;
     private final EntityRollingStock stock;
     private final ScriptSoundTracker soundTracker;
+    private final ScriptModelTracker modelTracker;
+    private final ModelHandleRegistry modelRegistry;
+    private final CurveHandleRegistry curveRegistry;
     private final ScriptUnit[] units;
 
     public TrainScriptInstance(EntityRollingStock stock, List<StockScriptFile> scriptFiles) throws ScriptException {
@@ -25,6 +31,9 @@ public final class TrainScriptInstance {
         this.stockId = stock.getUUID();
         this.defId = stock.getDefinitionID();
         this.soundTracker = new ScriptSoundTracker(stockId);
+        this.modelTracker = new ScriptModelTracker(stockId);
+        this.modelRegistry = new ModelHandleRegistry();
+        this.curveRegistry = new CurveHandleRegistry();
         this.units = new ScriptUnit[scriptFiles.size()];
 
         for (int i = 0; i < scriptFiles.size(); i++) {
@@ -51,6 +60,9 @@ public final class TrainScriptInstance {
         cam72cam.mod.world.World world = stock != null ? stock.getWorld() : null;
         cam72cam.mod.math.Vec3d position = stock != null ? stock.getPosition() : null;
         soundTracker.stopAllForDisposal((cam72cam.mod.entity.Entity) stock, world, position);
+        modelTracker.clearAll(stock);
+        modelRegistry.clear();
+        curveRegistry.clear();
         ScriptLog.runtimeDisposed(stockId, defId);
     }
 
@@ -86,7 +98,16 @@ public final class TrainScriptInstance {
         private ScriptUnit(EntityRollingStock stock, ScriptSoundTracker soundTracker,
                            StockScriptFile definition, String source) throws ScriptException {
             this.definition = definition;
-            this.runtime = new RhinoScriptRuntime(stock, soundTracker, this, source, definition.path);
+            this.runtime = new RhinoScriptRuntime(
+                    stock,
+                    soundTracker,
+                    modelTracker,
+                    modelRegistry,
+                    curveRegistry,
+                    this,
+                    source,
+                    definition.path
+            );
         }
 
         private void tick() {
