@@ -1,61 +1,22 @@
 # IR Scripts Wiki
 
-Welcome to the **IR Scripts** documentation.
+Documentation is now maintained as a **bilingual GitHub Wiki**.
 
-IR Scripts adds JavaScript scripting to [Immersive Railroading](https://github.com/TeamOpenIndustry/ImmersiveRailroading) rolling stock on **Minecraft 1.12.2**. Attach `.js` files to any stock JSON, control locomotives, read gauges, play sounds, and add in-game buttons — no separate Forge mod required.
-
----
-
-## What you can do
-
-- Run scripts on every tick (`LOOP`), once on spawn (`ONCE`), or from a GUI button (`BUTTON`)
-- Control throttles, brakes, engines, and couplers
-- Read IR gauge values (speed, boiler pressure, RPM, cargo, …)
-- Play custom sounds at the stock position
-
-Scripts run on the **server** (including single-player integrated server). Each stock instance has its own script runtime.
-
----
-
-## Documentation
-
-| Page | Description |
+| Link | Description |
 |------|-------------|
-| **[Full API Reference](Wiki-EN)** | Complete guide — configuration, all APIs, examples |
-| **[GitHub README](../README.md)** | Project overview, quick start, build instructions |
+| [GitHub Wiki home](https://github.com/wululapuda/IRScripts/wiki) | Online docs (recommended) |
+| [docs/wiki/](wiki/) | Wiki source files (use `publish.ps1` to push) |
+| [API reference](wiki/API-Reference-EN.md) | English API quick reference |
+| [中文](Home-ZH.md) | Chinese home (local) |
 
 ---
 
-## 30-second example
+## Local wiki source
 
-**Stock JSON:**
-```json
-"scripts": [{
-  "path": "mypack:scripts/my_loco.js",
-  "functions": { "tick": "LOOP", "horn": "BUTTON" }
-}]
-```
+- [English home](wiki/Home-EN.md)
+- [Handbook](wiki/Handbook-EN.md)
+- [Index](wiki/Sidebar-EN.md)
 
-**Script:**
-```javascript
-function tick() {
-    if (stock.getSpeedKmh() > 60) stock.control.setTrainBrake(0.5);
-}
-function horn() {
-    stock.sound.play("sounds/horn_1.ogg", 0.8);
-}
-```
+## Legacy Docsify site
 
-→ See **[Full API Reference](Wiki-EN)** for details.
-
----
-
-## Requirements
-
-- Minecraft **1.12.2**
-- Forge **14.23.5.2864+**
-- **Immersive Railroading**
-
----
-
-[中文 Wiki 首页](Home-ZH)
+[docs/site/](site/) remains for local preview. Canonical docs: `docs/wiki/`.

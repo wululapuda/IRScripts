@@ -1,7 +1,10 @@
-# IR Scripts 脚本手册
+﻿[EN](Handbook-EN) | **中文**
 
-> **文档已迁移至 GitHub Wiki 格式。** 在线版：[IRScripts Wiki](https://github.com/wululapuda/IRScripts/wiki)  
-> 源文件在仓库 `docs/wiki/`，使用 `publish.ps1` 推送。
+[< 目录](Handbook-ZH)
+
+---
+
+# IR Scripts 脚本手册
 
 你好，这是一部 **IR Scripts** 使用百科。
 
@@ -15,10 +18,10 @@ IR Scripts 为 [Immersive Railroading](https://github.com/TeamOpenIndustry/Immer
 - 你知道 `.ogg` 音效、`.anim` 动画在资源包里的路径规则
 - 你最好会看 `latest.log`
 
-> [!NOTE]
+> **注意：**
 > 本教程适用 **IR Scripts 2.0.0**，游戏版本 **Minecraft 1.12.2**（Forge）。脚本在**服务端**执行；单人模式也是本地集成服务端。
 
-> [!TIP]
+> **提示：**
 > 如果你正在做 IR 资源包，建议同时阅读 [原野的 IR 资源包手册](https://goldenfield192.github.io/)——那里讲 JSON、模型、Animatrix；本手册讲**脚本怎么写**。
 
 ---
@@ -35,6 +38,8 @@ IR Scripts 为 [Immersive Railroading](https://github.com/TeamOpenIndustry/Immer
 | 播自定义音效 | 带音量、音调、循环、听距 |
 | 驱动动画 | 播放 `.anim`，开关车门 |
 | 粒子效果 | 黑烟、蒸汽 |
+| 轨道查询 | 几何、道岔方向、脚本注册 |
+| 自定义模型 | OBJ 加载、沿曲线渲染 |
 
 ---
 
@@ -79,9 +84,9 @@ function playHorn() {
 
 ## 推荐阅读顺序
 
-1. [安装与依赖](Main/Markdowns/Install.md)
-2. [第一个脚本](Main/Markdowns/FirstScript.md)
-3. [执行模式](Main/Markdowns/ScriptModes.md)
-4. 按需查阅 [API 章节](Main/Markdowns/StockBasic.md)
+1. [安装与依赖](Install-ZH)
+2. [第一个脚本](First-Script-ZH)
+3. [执行模式](Script-Modes-ZH)
+4. 按需查阅 [API 章节](Stock-Basic-ZH)
 
 我们开始吧。

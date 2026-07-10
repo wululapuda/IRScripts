@@ -2,6 +2,7 @@ package cn.wululapuda.irscripts;
 
 import cam72cam.immersiverailroading.registry.DefinitionManager;
 import cn.wululapuda.irscripts.script.ScriptBootstrap;
+import cn.wululapuda.irscripts.script.TrackScriptBootstrap;
 import cn.wululapuda.irscripts.script.StockScriptTickHandler;
 import cn.wululapuda.irscripts.util.ScriptLog;
 import net.minecraftforge.common.MinecraftForge;
@@ -40,5 +41,6 @@ public final class ScriptEventHandler {
         }
         ScriptLog.bootstrapScanStart(phase);
         ScriptBootstrap.scanAllDefinitions();
+        TrackScriptBootstrap.scanAllTracks();
     }
 }

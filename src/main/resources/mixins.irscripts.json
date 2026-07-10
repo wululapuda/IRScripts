@@ -7,7 +7,10 @@
     "MixinDefinitionManager",
     "MixinEntityRollingStockDefinition",
     "MixinEntityRollingStock",
-    "MixinServerContainerBuilder"
+    "MixinServerContainerBuilder",
+    "MixinTileRail",
+    "MixinTileRailBase",
+    "MixinRailInfo"
   ],
   "client": [
     "MixinConfigGui",

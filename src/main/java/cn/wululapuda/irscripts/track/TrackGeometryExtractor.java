@@ -1,7 +1,9 @@
 package cn.wululapuda.irscripts.track;
 
+import cam72cam.immersiverailroading.library.SwitchState;
 import cam72cam.immersiverailroading.library.TrackDirection;
 import cam72cam.immersiverailroading.library.TrackItems;
+import cam72cam.immersiverailroading.tile.TileRail;
 import cam72cam.immersiverailroading.track.BuilderBase;
 import cam72cam.immersiverailroading.track.BuilderCubicCurve;
 import cam72cam.immersiverailroading.track.BuilderIterator;
@@ -11,7 +13,9 @@ import cam72cam.immersiverailroading.track.CubicCurve;
 import cam72cam.immersiverailroading.track.IIterableTrack;
 import cam72cam.immersiverailroading.track.PosStep;
 import cam72cam.immersiverailroading.util.RailInfo;
+import cam72cam.immersiverailroading.util.SwitchUtil;
 import cam72cam.immersiverailroading.util.VecUtil;
+import cn.wululapuda.irscripts.script.TrackScriptRegistry;
 import cam72cam.mod.math.Vec3d;
 import cam72cam.mod.math.Vec3i;
 
@@ -34,6 +38,11 @@ public final class TrackGeometryExtractor {
         String direction = info.settings.direction == TrackDirection.NONE
                 ? "NONE"
                 : info.settings.direction.name();
+        String trackId = info.settings.track;
+        String scriptPath = TrackScriptRegistry.getScriptPath(trackId, type);
+        boolean usesNative = scriptPath == null;
+        String switchDirection = resolveSwitchDirection(source);
+        String switchForced = resolveSwitchForced(source);
 
         TrackEndpointSnapshot start = extractStart(source);
         TrackEndpointSnapshot end = null;
@@ -64,18 +73,40 @@ public final class TrackGeometryExtractor {
 
         return new TrackDataSnapshot(
                 type.name(),
+                trackId,
                 gauge,
                 gaugeScale,
                 source.isBlueprint(),
+                usesNative,
+                scriptPath,
                 curvosity,
                 smoothing,
                 direction,
+                switchDirection,
+                switchForced,
+                new int[] {tilePos.x, tilePos.y, tilePos.z},
                 start,
                 end,
                 branch1,
                 branch2,
                 controls
         );
+    }
+
+    private static String resolveSwitchDirection(TrackSource source) {
+        TileRail switchTile = source.getSwitchTile();
+        if (switchTile == null) {
+            return SwitchState.NONE.name();
+        }
+        return SwitchUtil.getSwitchState(switchTile, source.getQueryCenter()).name();
+    }
+
+    private static String resolveSwitchForced(TrackSource source) {
+        TileRail switchTile = source.getSwitchTile();
+        if (switchTile == null || switchTile.info == null) {
+            return SwitchState.NONE.name();
+        }
+        return switchTile.info.switchForced.name();
     }
 
     private static TrackEndpointSnapshot extractStart(TrackSource source) {

@@ -238,6 +238,84 @@ public final class ScriptLog {
         log().warn("[Bootstrap] Failed to scan {}", defId, cause);
     }
 
+    public static void trackRegistryCleared() {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[TrackRegistry] Cleared");
+        }
+    }
+
+    public static void trackRegistryRegistered(String trackId, String typeKey, String path) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[TrackRegistry] {} {} -> {}", trackId, typeKey, path);
+        }
+    }
+
+    public static void trackRegistryWarn(String message, Object... args) {
+        log().warn("[TrackRegistry] " + message, args);
+    }
+
+    public static void trackBootstrapWaiting(String reason) {
+        log().info("[TrackBootstrap] Waiting: {}", reason);
+    }
+
+    public static void trackBootstrapComplete(int tracksChecked, int tracksWithScripts, int registrySize) {
+        log().info("[TrackBootstrap] Done: checked {} track(s), {} with scripts, {} registry entries",
+                tracksChecked, tracksWithScripts, registrySize);
+    }
+
+    public static void trackBootstrapMissing(String trackId) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[TrackBootstrap] Could not load JSON for {}", trackId);
+        }
+    }
+
+    public static void trackBootstrapFailed(String trackId, Throwable cause) {
+        log().warn("[TrackBootstrap] Failed to scan {}", trackId, cause);
+    }
+
+    public static void trackScriptMissingInit(String scriptPath) {
+        log().error("[TrackScript|{}] Missing required function init()", scriptPath);
+    }
+
+    public static void trackScriptMissingSwitch(String scriptPath) {
+        log().error("[TrackScript|{}] Missing required function switch() for SWITCH track", scriptPath);
+    }
+
+    public static void trackScriptMissingFunction(String scriptPath, String functionName) {
+        log().error("[TrackScript|{}] Missing function {}", scriptPath, functionName);
+    }
+
+    public static void trackScriptInvokeInit(String scriptPath, int x, int y, int z) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[TrackScript|{}] init() at {}, {}, {}", scriptPath, x, y, z);
+        }
+    }
+
+    public static void trackScriptInvokeSwitch(String scriptPath, int x, int y, int z, String state) {
+        if (ScriptRuntimeSettings.isDebug()) {
+            log().debug("[TrackScript|{}] switch() at {}, {}, {} -> {}", scriptPath, x, y, z, state);
+        }
+    }
+
+    public static void trackScriptPrint(String scriptPath, int x, int y, int z, Object message) {
+        if (!ScriptRuntimeSettings.isScriptPrint()) {
+            return;
+        }
+        log().info("[TrackScript|{}|{}, {}, {}] {}", scriptPath, x, y, z, message);
+    }
+
+    public static void trackScriptError(String scriptPath, String functionName, Throwable cause) {
+        log().error("[TrackScript|{}] {}() failed", scriptPath, functionName, cause);
+    }
+
+    public static void trackScriptFailed(String scriptPath, String functionName, Throwable cause) {
+        log().warn("[TrackScript|{}] {}() error: {}", scriptPath, functionName, cause.getMessage());
+    }
+
+    public static void trackScriptStdlibWarn(String path, String message) {
+        log().warn("[TrackScript] Stdlib {} failed: {}", path, message);
+    }
+
     public static void engineCreatedVia(String name) {
         if (ScriptRuntimeSettings.isDebug()) {
             log().debug("[Engine] Created via ScriptEngineManager name '{}'", name);
